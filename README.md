@@ -1,59 +1,118 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Feedback Form Project
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Overview
 
-## About Laravel
+This project is a **Feedback Form Application** built with **Laravel 12** and **Livewire 3.6**. It allows users to submit feedback based on their medical appointment experience, utilizing NPS (Net Promoter Score) to dynamically categorize user sentiment and trigger specific follow-up questions and options.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🛠 Tech Stack & Versions
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **PHP**: `^8.2`
+- **Laravel Framework**: `^12.0`
+- **Livewire**: `^3.6`
+- **TailwindCSS**: `^4.0`
+- **Vite**: `^7.0`
+- **Database**: Relational Database (MySQL/SQLite supported via Laravel migrations)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 🗄 Database Schema
 
-## Learning Laravel
+The application uses a `feedbacks` table to store all submission data.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+| Column         | Type             | Description                                                |
+| -------------- | ---------------- | ---------------------------------------------------------- |
+| `id`           | BigInt (PK)      | Unique identifier                                          |
+| `request_id`   | Unsigned BigInt  | ID linking feedback to a specific request/appointment      |
+| `nps_score`    | Unsigned TinyInt | User rating (0-10)                                         |
+| `feedback`     | JSON             | Stores structured data: `comment`, `options`, `subOptions` |
+| `is_completed` | Boolean          | `0` = Draft/WIP, `1` = Submitted                           |
+| `status`       | Enum             | `open` (0-6), `close` (7-10), `wip`                        |
+| `viewed_count` | Unsigned TinyInt | Counter for views (default 0)                              |
+| `created_at`   | Timestamp        | Creation time                                              |
+| `updated_at`   | Timestamp        | Last update time                                           |
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## 🔄 Code Flow & Architecture
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 1. **Route & Controller**
 
-### Premium Partners
+- **Entry Point**: The user accesses the feedback page with a `request_id` (e.g., `?request_id=123`).
+- **Controller**: `App\Http\Controllers\FeedbackController`
+  - `index(Request $request)`: Validates the `request_id` and loads the `feedbackform.feedback` view.
+  - The controller also contains legacy `store`, `autosave`, and `update` methods for API-based interactions, but the core interactive UI is driven by Livewire.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 2. **View Layer**
 
-## Contributing
+- **Blade File**: `resources/views/feedbackform/feedback.blade.php`
+- **Structure**:
+  - Displays the static NPS Rating UI (0-10).
+  - Embeds the standard Livewire component: `<livewire:feedback-form :requestid="$requestid" />`.
+  - On clicking an NPS score, a Livewire event `npsSelected` is dispatched to the component.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 3. **Livewire Component (`FeedbackForm.php`)**
 
-## Code of Conduct
+This is the core logic handler located at `App\Livewire\FeedbackForm`.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+#### **Key Properties**
 
-## Security Vulnerabilities
+- `$nps_score`: Stores the selected score.
+- `$medical_experience`: Derived from NPS (Excellent/Good/Poor).
+- `$question`: Dynamic follow-up question based on experience.
+- `$checkboxOptions`: Dynamic list of issues/compliments based on score.
+- `$selectedOptions` & `$subOptions`: User selections.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+#### **Key Functions**
 
-## License
+- **`mount($requestid)`**:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+  - Initializes the component.
+  - Checks if a draft exists in the `feedbacks` table for the given `request_id`.
+  - If a draft exists, it repopulates the state (score, comments, options).
+
+- **`handleNpsClick($score)`**:
+
+  - Listens for the `npsSelected` event.
+  - Updates `$nps_score`.
+  - Logic:
+    - **9-10 (Promoters)**: Status `close`, shows positive options (e.g., "Staff Professionalism").
+    - **0-6 (Detractors)**: Status `open`, shows negative options/issues (e.g., "High waiting time").
+  - Triggers `autoSave()`.
+
+- **`autoSave()`**:
+
+  - Automatically saves progress to the database after every interaction.
+  - Sets `is_completed` to `0` (false) and `status` based on NPS.
+  - Stores detailed selections in the `feedback` JSON column.
+
+- **`submit()`**:
+  - Validates that an NPS score is selected.
+  - Updates the record in the database.
+  - Sets `is_completed` to `1` (true).
+  - sets `status` to `open` or `close` based on the score.
+
+## ⚙️ Logic Breakdown
+
+### **NPS Status Logic**
+
+The system automatically categorizes the case status based on the NPS score:
+
+- **0 - 6**: `open` (Requires attention/follow-up)
+- **7 - 10**: `close` (Satisfactory/Excellent)
+- **Default**: `wip` (Work In Progress)
+
+### **JSON Data Structure**
+
+To keep the schema flexible, detailed feedback is stored in a JSON column:
+
+```json
+{
+  "comment": "User feedback text...",
+  "options": {
+    "Staff Professionalism": ["Rude behavior"],
+    "Facilities": ["Cleanliness"]
+  }
+}
+```
+
+---
+
+Generated by Antigravity Agent
