@@ -54,7 +54,8 @@ class FeedbackForm extends Component
         if ($draft) {
             $this->feedback_id = $draft->id;
             $this->nps_score = $draft->nps_score ?? null;
-            $this->comment = $draft->feedback['comment'] ?? '';
+            // ⭐ FIXED: Get comment from comment column, not from feedback JSON
+            $this->comment = $draft->comment ?? '';
 
             if (isset($draft->feedback['options'])) {
                 $this->selectedOptions = array_keys($draft->feedback['options']);
@@ -119,9 +120,7 @@ class FeedbackForm extends Component
         return 'wip';
     }
 
-    /**
-     * ⭐ FIXED: Auto-save now always sets is_completed to 0 (false)
-     */
+
     private function autoSave()
     {
         if (!$this->requestid)
@@ -129,9 +128,8 @@ class FeedbackForm extends Component
 
         $options = $this->normalizeSelectedSubOptions();
 
-        // ⭐ Store only comment and options in feedback JSON
+        // ⭐ FIXED: Store only options in feedback JSON (removed syntax error)
         $feedbackData = [
-            'comment' => $this->comment,
             'options' => $options,
         ];
 
@@ -141,10 +139,12 @@ class FeedbackForm extends Component
             $feedback = Feedback::find($this->feedback_id);
 
             // ⭐ FIXED: Always set is_completed to FALSE (0) during auto-save
+            // ⭐ FIXED: Store comment in separate column
             $feedback->update([
                 'feedback' => $feedbackData,
                 'request_id' => $this->requestid,
                 'nps_score' => $this->nps_score,
+                'comment' => $this->comment,  // ⭐ ADDED: Store comment separately
                 'is_completed' => false, // ⭐ Always 0 for drafts
                 'status' => $caseStatus,
             ]);
@@ -152,6 +152,7 @@ class FeedbackForm extends Component
             $feedback = Feedback::create([
                 'request_id' => $this->requestid,
                 'nps_score' => $this->nps_score,
+                'comment' => $this->comment,  // ⭐ ADDED: Store comment separately
                 'is_completed' => false, // ⭐ Always 0 for new drafts
                 'status' => $caseStatus,
                 'feedback' => $feedbackData,
@@ -233,7 +234,7 @@ class FeedbackForm extends Component
                 'Information Issues' => ['Missing / wrong product information given', 'Incorrect / incomplete information'],
                 'Facility / Service Issues' => ['High waiting time', 'Infrastructure related issue', 'Lack of hygiene / cleanliness', 'Health check-up denied', 'Non serviceable radiology area'],
                 'Fraud / Suspected Fraud' => ['Sample sent to other lab', 'Potential fraud', 'Fake report', 'Data entry error'],
-                'Other' => ['Duplicate', 'Logged by mistake'],
+                'Other' => ['Duplicate', 'Logged by mistake', 'Appreciation'],
             ];
 
             $this->subOptions = [];
@@ -254,19 +255,12 @@ class FeedbackForm extends Component
     {
         $this->autoSave();
     }
+
     public function updatedComment()
     {
         $this->autoSave();
     }
 
-    /**
-     * ⭐ REMOVED: saveForm() method - no longer needed
-     * Submit button now directly calls submit() which handles completion
-     */
-
-    /**
-     * ⭐ FIXED: Submit now properly sets is_completed to TRUE (1)
-     */
     public function submit()
     {
         if ($this->nps_score === null) {
@@ -277,21 +271,20 @@ class FeedbackForm extends Component
         $options = $this->normalizeSelectedSubOptions();
         $caseStatus = $this->getCaseStatusFromNps($this->nps_score);
 
-        // ⭐ Store only comment and options in feedback JSON
         $finalData = [
-            'comment' => $this->comment,
             'options' => $options,
         ];
 
         if ($this->feedback_id) {
-            // ⭐ CRITICAL FIX: Use DB::table for direct update to ensure boolean conversion
+
             \DB::table('feedbacks')
                 ->where('id', $this->feedback_id)
                 ->update([
                     'feedback' => json_encode($finalData),
                     'request_id' => $this->requestid,
                     'nps_score' => $this->nps_score,
-                    'is_completed' => 1,  // ⭐ Explicitly set to integer 1
+                    'comment' => $this->comment,
+                    'is_completed' => 1,
                     'status' => $caseStatus,
                     'updated_at' => now(),
                 ]);
@@ -304,7 +297,8 @@ class FeedbackForm extends Component
             $feedback = Feedback::create([
                 'request_id' => $this->requestid,
                 'nps_score' => $this->nps_score,
-                'is_completed' => 1,  // ⭐ Use integer 1 instead of boolean true
+                'comment' => $this->comment,//
+                'is_completed' => 1,
                 'status' => $caseStatus,
                 'feedback' => $finalData,
             ]);

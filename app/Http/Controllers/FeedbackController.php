@@ -64,8 +64,8 @@ class FeedbackController extends Controller
             'nps_score' => $request->nps_score,
             'is_completed' => $request->is_completed,
             'status' => $caseStatus,
+            'comment' => $request->comment,
             'feedback' => [
-                'comment' => $request->comment,
                 'options' => $options,
             ],
         ]);
@@ -103,8 +103,8 @@ class FeedbackController extends Controller
         }
 
         // ⭐ Store only comment and options in feedback JSON
+        $feedback->comment = $request->comment;
         $feedback->feedback = [
-            'comment' => $request->comment,
             'options' => $options,
         ];
 
@@ -153,8 +153,9 @@ class FeedbackController extends Controller
         }
 
         // ⭐ Store only comment and options in feedback JSON
+        $feedback->comment = $validated['comment'] ?? ($feedback->feedback['comment'] ?? null);
+
         $feedback->feedback = [
-            'comment' => $validated['comment'] ?? ($feedback->feedback['comment'] ?? null),
             'options' => $validated['options'] ?? ($feedback->feedback['options'] ?? []),
         ];
 

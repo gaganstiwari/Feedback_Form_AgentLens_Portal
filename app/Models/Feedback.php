@@ -14,6 +14,7 @@ class Feedback extends Model
         'nps_score',
         'iscompleted',
         'feedback',
+        'comment',
         'status',
         'viewed_count',
     ];

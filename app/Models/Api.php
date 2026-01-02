@@ -6,14 +6,14 @@ use Illuminate\Support\Facades\Http;
 
 class Api
 {
-    
+
     protected $api_url = "http://localhost:5000/records";
 
     public function getAll()
     {
         $response = Http::get($this->api_url);
 
-        return $response->json(); 
+        return $response->json();
     }
 
     public function findById($id)
