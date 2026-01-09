@@ -16,14 +16,13 @@ class Feedback extends Model
         'feedback',
         'comment',
         'status',
-        'viewed_count',
+
     ];
 
     protected $casts = [
         'feedback' => 'array',           // JSON field
         'is_completed' => 'integer',     // ⭐ Cast to integer (0 or 1)
         'nps_score' => 'integer',
-        'viewed_count' => 'integer',
         'request_id' => 'string',
     ];
 
